@@ -24,7 +24,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>👨‍🏭 銲接電流實驗室 v2.5</h1>
+        <h1>👨‍🏭 銲接電流實驗室 v3.0</h1>
         <p style="text-align: center; color: #888;">選擇參數取得最佳化建議，或輸入數值進行驗證</p>
         
         <form method="POST">
@@ -34,13 +34,20 @@
                 <option value="不鏽鋼">不鏽鋼</option>
             </select>
 
+            <label>選擇板厚度：</label>
+            <select name="thickness" required>
+                <option value="薄板(1~3mm)">薄板 (1~3mm)</option>
+                <option value="中厚板(4~6mm)">中厚板 (4~6mm)</option>
+                <option value="特殊厚板(未知)">特殊厚板 (啟動公式備案)</option>
+            </select>
+
             <label>選擇銲條直徑 (mm)：</label>
             <select name="diameter" required>
                 <option value="1.6">1.6 mm</option>
                 <option value="2.0">2.0 mm</option>
                 <option value="2.6">2.6 mm</option>
                 <option value="3.2">3.2 mm</option>
-                <option value="4.0">4.0 mm (測試40倍公式)</option>
+                <option value="4.0">4.0 mm</option>
             </select>
 
             <label>輸入你想測試的電流 (A) - <span style="color: #2ed573;">[選填]</span>：</label>
@@ -55,11 +62,12 @@
                     <p class="alert-red">⚠️ {{ result.error }}</p>
                 {% else %}
                     <h3 style="margin-top: 0; color: #fff;">🔬 實驗室分析報告</h3>
-                    <p style="color: #a2a8d3;">條件：{{ result.material }} | 直徑 {{ result.diameter }} mm</p>
+                    <p style="color: #a2a8d3;">條件：{{ result.material }} | 厚度：{{ result.thickness }} | 直徑 {{ result.diameter }} mm</p>
                     
                     <hr>
                     
                     <p>💡 系統推薦最佳電流：<span class="highlight">{{ result.recommended_current }} A</span></p>
+                    <p style="font-size: 0.9em; color: #888;">(計算依據：{{ result.calc_method }})</p>
                     
                     <h4 style="margin-bottom: 10px; color: #a2a8d3;">📊 電流參數影響矩陣</h4>
                     <ul class="matrix-list">

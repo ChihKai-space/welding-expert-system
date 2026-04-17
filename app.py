@@ -2,10 +2,16 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# 模擬的資料庫 (WELDING_DATA)
+# 模擬的資料庫 (加入板厚度，統測完你可以隨意擴充)
 WELDING_DATA = {
-    "碳鋼": {"1.6": 60, "2.0": 80, "2.6": 100, "3.2": 120},
-    "不鏽鋼": {"1.6": 55, "2.0": 75, "2.6": 90, "3.2": 110}
+    "碳鋼": {
+        "薄板(1~3mm)": {"1.6": 60, "2.0": 80, "2.6": 90},
+        "中厚板(4~6mm)": {"2.6": 100, "3.2": 120, "4.0": 150}
+    },
+    "不鏽鋼": {
+        "薄板(1~3mm)": {"1.6": 55, "2.0": 70, "2.6": 85},
+        "中厚板(4~6mm)": {"2.6": 90, "3.2": 110, "4.0": 140}
+    }
 }
 
 @app.route('/', methods=['GET', 'POST'])
@@ -14,16 +20,24 @@ def index():
     if request.method == 'POST':
         try:
             material = request.form.get('material')
+            thickness = request.form.get('thickness')
             diameter = request.form.get('diameter')
             user_current_str = request.form.get('user_current', '').strip()
             
-            # 1. 尋找系統最佳電流
+            # 1. 尋找系統最佳電流 (加入板厚度與 40 倍備案邏輯)
             recommended_current = None
-            if material in WELDING_DATA and diameter in WELDING_DATA[material]:
-                recommended_current = WELDING_DATA[material][diameter]
+            calc_method = ""
+            
+            # 檢查是否有對應的 材質 -> 厚度 -> 直徑 資料
+            if (material in WELDING_DATA and 
+                thickness in WELDING_DATA[material] and 
+                diameter in WELDING_DATA[material][thickness]):
+                recommended_current = WELDING_DATA[material][thickness][diameter]
+                calc_method = "資料庫建議值"
             else:
-                # 如果選了特殊尺寸查不到資料，啟動 40 倍經驗公式備案
+                # 如果查不到資料 (範圍外)，啟動 40 倍經驗公式備案
                 recommended_current = float(diameter) * 40
+                calc_method = "範圍外備案 (直徑 x 40)"
 
             # 2. 動態生成「電流影響分析表」
             effects_matrix = [
@@ -34,12 +48,12 @@ def index():
                 {"range": f"高於 {recommended_current + 15}A", "effect": "容易造成嚴重咬邊、燒穿、銲道過寬及飛濺過多。"}
             ]
 
-            # 3. 判斷使用者測試電流 (如果有輸入的話)
+            # 3. 判斷使用者測試電流 (如果有輸入)
             user_current = None
             test_result = None
             test_advice = None
             
-            if user_current_str: # 如果字串不是空的，代表使用者有輸入
+            if user_current_str:
                 user_current = float(user_current_str)
                 lower_limit = recommended_current - 5
                 upper_limit = recommended_current + 5
@@ -62,8 +76,10 @@ def index():
 
             result = {
                 "material": material,
+                "thickness": thickness,
                 "diameter": diameter,
                 "recommended_current": recommended_current,
+                "calc_method": calc_method,
                 "effects_matrix": effects_matrix,
                 "user_current": user_current,
                 "test_result": test_result,

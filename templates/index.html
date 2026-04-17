@@ -38,27 +38,31 @@
         
         <form method="POST">
             <label>Type 銲接種類：</label>
-            <select name="weld_type">
+            <select name="weld_type" required>
+                <option value="" disabled selected hidden></option>
                 <option value="plate">Plate 板材</option>
                 <option value="pipe">Pipe 管材</option>
             </select>
 
             <label>Material 材質：</label>
-            <select name="material">
+            <select name="material" required>
+                <option value="" disabled selected hidden></option>
                 <option value="carbon">Carbon Steel 碳鋼</option>
                 <option value="stainless">Stainless Steel 不鏽鋼</option>
                 <option value="alloy">Low Alloy 低合金鋼</option>
             </select>
 
             <label>Thickness 厚度：</label>
-            <select name="thickness">
+            <select name="thickness" required>
+                <option value="" disabled selected hidden></option>
                 <option value="thin">Thin 薄件 (1~3mm)</option>
                 <option value="medium">Medium 中厚件 (4~6mm)</option>
                 <option value="thick">Thick 特殊厚件 (>6mm)</option>
             </select>
 
             <label>Tungsten Dia 電極直徑 (mm)：</label>
-            <select name="diameter">
+            <select name="diameter" required>
+                <option value="" disabled selected hidden></option>
                 <option value="1.6">1.6 mm</option>
                 <option value="2.0">2.0 mm</option>
                 <option value="2.6">2.6 mm</option>
@@ -67,7 +71,7 @@
             </select>
 
             <label>Test Amperage 測試電流 (A) [Optional 選填]：</label>
-            <input type="number" step="0.1" name="user_current" placeholder="e.g. 100">
+            <input type="number" step="0.1" name="user_current" placeholder="填入電流 Enter Amperage">
 
             <button type="submit">DIAGNOSE 開始診斷</button>
         </form>

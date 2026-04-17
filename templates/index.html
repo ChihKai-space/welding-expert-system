@@ -12,14 +12,13 @@
         select, input { width: 100%; padding: 12px; margin-top: 6px; border-radius: 4px; border: 1px solid #0f3460; background: #0f3460; color: white; box-sizing: border-box; font-size: 1em; }
         button { width: 100%; padding: 16px; margin-top: 25px; background: #e94560; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; letter-spacing: 1px; }
         
-        /* 報告區塊共用樣式 */
         .report-section { margin-top: 30px; padding: 25px; border-radius: 8px; }
         .report-en { background: #0f3460; border-left: 5px solid #4da8da; }
-        .report-zh { background: #1a1a2e; border-left: 5px solid #e94560; margin-top: 20px; border: 1px solid #2c2c54; border-left: 5px solid #e94560; }
+        .report-zh { background: #1a1a2e; margin-top: 20px; border: 1px solid #2c2c54; border-left: 5px solid #e94560; }
         
-        h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .report-en h3 { color: #4da8da; border-color: #1a4f76; }
-        .report-zh h3 { color: #e94560; border-color: #3b1b24; }
+        h3 { margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .report-en h3 { color: #4da8da; }
+        .report-zh h3 { color: #e94560; }
         
         .pos-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 0.95em; }
         .matrix-list { background: rgba(0,0,0,0.2); padding: 15px 15px 15px 35px; border-radius: 6px; font-size: 0.9em; color: #ccc; }
@@ -27,7 +26,10 @@
         .highlight { font-weight: bold; font-size: 1.1em; }
         .highlight-en { color: #4da8da; }
         .highlight-zh { color: #f9d423; }
-        .alert { padding: 10px; background: rgba(255,0,0,0.1); border-radius: 4px; margin-top: 15px; border-left: 3px solid #ff4757; }
+        .alert { padding: 10px; background: rgba(255,0,0,0.1); border-radius: 4px; margin-top: 15px; }
+        .alert-en { border-left: 3px solid #4da8da; }
+        .alert-zh { border-left: 3px solid #ff4757; }
+        .summary-text { font-size: 0.9em; opacity: 0.9; margin-bottom: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -37,22 +39,22 @@
         <form method="POST">
             <label>Type 銲接種類：</label>
             <select name="weld_type">
-                <option value="板材 (Plate)">板材 (Plate)</option>
-                <option value="管材 (Pipe)">管材 (Pipe)</option>
+                <option value="plate">Plate 板材</option>
+                <option value="pipe">Pipe 管材</option>
             </select>
 
             <label>Material 材質：</label>
             <select name="material">
-                <option value="碳鋼 (Carbon Steel)">碳鋼 (Carbon Steel)</option>
-                <option value="不鏽鋼 (Stainless)">不鏽鋼 (Stainless)</option>
-                <option value="低合金鋼 (Alloy)">低合金鋼 (Alloy)</option>
+                <option value="carbon">Carbon Steel 碳鋼</option>
+                <option value="stainless">Stainless Steel 不鏽鋼</option>
+                <option value="alloy">Low Alloy 低合金鋼</option>
             </select>
 
             <label>Thickness 厚度：</label>
             <select name="thickness">
-                <option value="薄件 (Thin / 1~3mm)">薄件 (Thin / 1~3mm)</option>
-                <option value="中厚件 (Medium / 4~6mm)">中厚件 (Medium / 4~6mm)</option>
-                <option value="特殊厚件">特殊厚件 (>6mm)</option>
+                <option value="thin">Thin 薄件 (1~3mm)</option>
+                <option value="medium">Medium 中厚件 (4~6mm)</option>
+                <option value="thick">Thick 特殊厚件 (>6mm)</option>
             </select>
 
             <label>Tungsten Dia 電極直徑 (mm)：</label>
@@ -64,7 +66,7 @@
                 <option value="4.0">4.0 mm</option>
             </select>
 
-            <label>Test Amperage 測試電流 (A) [Optional]：</label>
+            <label>Test Amperage 測試電流 (A) [Optional / 選填]：</label>
             <input type="number" step="0.1" name="user_current" placeholder="e.g. 100">
 
             <button type="submit">DIAGNOSE 開始診斷</button>
@@ -72,16 +74,16 @@
 
         {% if result %}
             {% if result.error %}
-                <div class="alert" style="margin-top: 30px;">⚠️ {{ result.error }}</div>
+                <div class="alert alert-zh" style="margin-top: 30px;">⚠️ {{ result.error }}</div>
             {% else %}
                 <div class="report-section report-en">
                     <h3>English Version</h3>
-                    <p style="font-size: 0.85em; color: #8ab4f8;">{{ result.weld_type }} | {{ result.material }} | {{ result.thickness }}</p>
+                    <div class="summary-text" style="color: #8ab4f8;">{{ result.summary_en }}</div>
                     
                     <p>Base Current: <span class="highlight highlight-en">{{ result.recommended_current }} A</span></p>
                     
                     <div class="pos-box">
-                        <strong style="color: #8ab4f8;">Position Adjustments:</strong>
+                        <strong style="color: #4da8da;">Position Adjustments:</strong>
                         <ul style="margin: 8px 0 0 0; padding-left: 20px;">
                             {% for pos, advice in result.en.pos.items() %}
                                 <li><strong>{{ pos }}</strong>: {{ advice }}</li>
@@ -89,7 +91,7 @@
                         </ul>
                     </div>
 
-                    <strong style="color: #8ab4f8; display: block; margin-top: 20px;">Current Effect Matrix:</strong>
+                    <strong style="color: #4da8da; display: block; margin-top: 20px;">Current Effect Matrix:</strong>
                     <ul class="matrix-list">
                         {% for item in result.en.matrix %}
                             <li><strong>{{ item.range }}</strong>: {{ item.effect }}</li>
@@ -97,7 +99,7 @@
                     </ul>
 
                     {% if result.user_current %}
-                        <div class="alert">
+                        <div class="alert alert-en">
                             <strong>Validation ({{ result.user_current }} A):</strong> <span style="color: #fff;">{{ result.en.res }}</span><br>
                             <span style="font-size: 0.9em; color: #ccc;">{{ result.en.adv }}</span>
                         </div>
@@ -106,7 +108,7 @@
 
                 <div class="report-section report-zh">
                     <h3>中文版本</h3>
-                    <p style="font-size: 0.85em; color: #a2a8d3;">{{ result.weld_type }} | {{ result.material }} | {{ result.thickness }}</p>
+                    <div class="summary-text" style="color: #a2a8d3;">{{ result.summary_zh }}</div>
                     
                     <p>推薦基準電流：<span class="highlight highlight-zh">{{ result.recommended_current }} A</span></p>
                     
@@ -127,7 +129,7 @@
                     </ul>
 
                     {% if result.user_current %}
-                        <div class="alert">
+                        <div class="alert alert-zh">
                             <strong>參數驗證 ({{ result.user_current }} A)：</strong> <span style="color: #fff;">{{ result.zh.res }}</span><br>
                             <span style="font-size: 0.9em; color: #ccc;">{{ result.zh.adv }}</span>
                         </div>

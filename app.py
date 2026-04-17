@@ -36,15 +36,14 @@ def index():
             else:
                 recommended_current = float(diameter) * 40
 
-            # 銲接位置建議 (Bilingual)
-            position_advice = {
-                "平銲 (Flat / 1G)": f"Base: {recommended_current}A. Good fluidity.",
-                "橫銲 (Horizontal / 2G)": f"Ref: {int(recommended_current * 0.9)}A. Reduce 10%.",
-                "立銲 (Vertical / 3G)": f"Ref: {int(recommended_current * 0.85)}A. Reduce 15%.",
-                "仰銲 (Overhead / 4G)": f"Ref: {int(recommended_current * 0.85)}A. Keep short arc."
+            # 英文版資料
+            pos_en = {
+                "1G (Flat)": f"Base: {recommended_current}A. Good fluidity.",
+                "2G (Horizontal)": f"Ref: {int(recommended_current * 0.9)}A. Reduce 10%.",
+                "3G (Vertical)": f"Ref: {int(recommended_current * 0.85)}A. Reduce 15%.",
+                "4G (Overhead)": f"Ref: {int(recommended_current * 0.85)}A. Keep short arc."
             }
-
-            effects_matrix = [
+            effects_en = [
                 {"range": f"< {int(recommended_current - 15)}A", "effect": "Arc unstable, high risk of slag inclusion."},
                 {"range": f"{int(recommended_current - 15)}A ~ {int(recommended_current - 5)}A", "effect": "Narrow bead, shallow penetration."},
                 {"range": f"{int(recommended_current - 5)}A ~ {int(recommended_current + 5)}A", "effect": "Optimal range, stable arc."},
@@ -52,32 +51,50 @@ def index():
                 {"range": f"> {int(recommended_current + 15)}A", "effect": "Severe undercut, burn-through risk."}
             ]
 
+            # 中文版資料
+            pos_zh = {
+                "平銲 (1G)": f"基準電流 {recommended_current}A。流動性佳，可獲最大熔深。",
+                "橫銲 (2G)": f"約 {int(recommended_current * 0.9)}A (調降10%)。需避免熔池受重力下垂。",
+                "立銲 (3G)": f"約 {int(recommended_current * 0.85)}A (調降15%)。需精準控制熔池避免包渣。",
+                "仰銲 (4G)": f"約 {int(recommended_current * 0.85)}A (調降15%)。保持短電弧，防止鐵水滴落。"
+            }
+            effects_zh = [
+                {"range": f"低於 {int(recommended_current - 15)}A", "effect": "電弧不穩，極易發生包渣或滲透不足。"},
+                {"range": f"{int(recommended_current - 15)}A ~ {int(recommended_current - 5)}A", "effect": "銲道偏高，熔深較淺，起弧稍微困難。"},
+                {"range": f"{int(recommended_current - 5)}A ~ {int(recommended_current + 5)}A", "effect": "最佳參數區間，電弧穩定，銲道平順。"},
+                {"range": f"{int(recommended_current + 5)}A ~ {int(recommended_current + 15)}A", "effect": "熔池流動快，銲道扁平，有咬邊風險。"},
+                {"range": f"高於 {int(recommended_current + 15)}A", "effect": "容易造成嚴重咬邊、燒穿及飛濺。"}
+            ]
+
+            # 測試驗證邏輯
             user_current = None
-            test_result = None
-            test_advice = None
+            test_res_en, test_adv_en = None, None
+            test_res_zh, test_adv_zh = None, None
+            
             if user_current_str:
                 user_current = float(user_current_str)
                 if user_current < recommended_current - 15:
-                    test_result = "Critically Low / 嚴重偏低"
-                    test_advice = "Increase current to avoid lack of fusion."
+                    test_res_en, test_adv_en = "Critically Low", "Increase current to avoid lack of fusion."
+                    test_res_zh, test_adv_zh = "嚴重偏低", "大幅調高電流，否則極易發生包渣或假銲。"
                 elif user_current < recommended_current - 5:
-                    test_result = "Slightly Low / 稍微偏低"
-                    test_advice = "Slightly increase for better penetration."
+                    test_res_en, test_adv_en = "Slightly Low", "Slightly increase for better penetration."
+                    test_res_zh, test_adv_zh = "稍微偏低", "建議稍微調高電流以獲取更好熔深。"
                 elif user_current > recommended_current + 15:
-                    test_result = "Critically High / 嚴重偏高"
-                    test_advice = "Risk of burn-through. Reduce immediately."
+                    test_res_en, test_adv_en = "Critically High", "Risk of burn-through. Reduce immediately."
+                    test_res_zh, test_adv_zh = "嚴重偏高", "極高風險燒穿或咬邊，請立刻調低。"
                 elif user_current > recommended_current + 5:
-                    test_result = "Slightly High / 稍微偏高"
-                    test_advice = "Monitor for undercut and spatter."
+                    test_res_en, test_adv_en = "Slightly High", "Monitor for undercut and spatter."
+                    test_res_zh, test_adv_zh = "稍微偏高", "建議稍微調低，減少飛濺與咬邊風險。"
                 else:
-                    test_result = "Optimal / 最佳範圍"
-                    test_advice = "Parameters meet professional standards."
+                    test_res_en, test_adv_en = "Optimal", "Parameters meet professional standards."
+                    test_res_zh, test_adv_zh = "最佳範圍", "設定非常合理，符合實務標準。"
 
             result = {
                 "weld_type": weld_type, "material": material, "thickness": thickness,
                 "diameter": diameter, "recommended_current": recommended_current,
-                "position_advice": position_advice, "effects_matrix": effects_matrix,
-                "user_current": user_current, "test_result": test_result, "test_advice": test_advice
+                "user_current": user_current,
+                "en": {"pos": pos_en, "matrix": effects_en, "res": test_res_en, "adv": test_adv_en},
+                "zh": {"pos": pos_zh, "matrix": effects_zh, "res": test_res_zh, "adv": test_adv_zh}
             }
         except Exception as e:
             result = {"error": "System Error / 系統錯誤"}

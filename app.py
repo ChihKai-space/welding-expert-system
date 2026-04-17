@@ -2,18 +2,30 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# 模擬資料庫
+# 資料庫 Key 改為純英文代碼，方便後端乾淨處理
 WELDING_DATA = {
-    "板材 (Plate)": {
-        "碳鋼 (Carbon Steel)": {"薄件 (Thin / 1~3mm)": {"1.6": 60, "2.0": 80, "2.6": 90}, "中厚件 (Medium / 4~6mm)": {"2.6": 100, "3.2": 120, "4.0": 150}},
-        "不鏽鋼 (Stainless)": {"薄件 (Thin / 1~3mm)": {"1.6": 55, "2.0": 70, "2.6": 85}, "中厚件 (Medium / 4~6mm)": {"2.6": 90, "3.2": 110, "4.0": 140}},
-        "低合金鋼 (Alloy)": {"薄件 (Thin / 1~3mm)": {"1.6": 65, "2.0": 85, "2.6": 95}, "中厚件 (Medium / 4~6mm)": {"2.6": 105, "3.2": 125, "4.0": 155}}
+    "plate": {
+        "carbon": {"thin": {"1.6": 60, "2.0": 80, "2.6": 90}, "medium": {"2.6": 100, "3.2": 120, "4.0": 150}},
+        "stainless": {"thin": {"1.6": 55, "2.0": 70, "2.6": 85}, "medium": {"2.6": 90, "3.2": 110, "4.0": 140}},
+        "alloy": {"thin": {"1.6": 65, "2.0": 85, "2.6": 95}, "medium": {"2.6": 105, "3.2": 125, "4.0": 155}}
     },
-    "管材 (Pipe)": {
-        "碳鋼 (Carbon Steel)": {"薄件 (Thin / 1~3mm)": {"1.6": 55, "2.0": 75, "2.6": 85}, "中厚件 (Medium / 4~6mm)": {"2.6": 95, "3.2": 115, "4.0": 140}},
-        "不鏽鋼 (Stainless)": {"薄件 (Thin / 1~3mm)": {"1.6": 50, "2.0": 65, "2.6": 80}, "中厚件 (Medium / 4~6mm)": {"2.6": 85, "3.2": 105, "4.0": 130}},
-        "低合金鋼 (Alloy)": {"薄件 (Thin / 1~3mm)": {"1.6": 60, "2.0": 80, "2.6": 90}, "中厚件 (Medium / 4~6mm)": {"2.6": 100, "3.2": 120, "4.0": 145}}
+    "pipe": {
+        "carbon": {"thin": {"1.6": 55, "2.0": 75, "2.6": 85}, "medium": {"2.6": 95, "3.2": 115, "4.0": 140}},
+        "stainless": {"thin": {"1.6": 50, "2.0": 65, "2.6": 80}, "medium": {"2.6": 85, "3.2": 105, "4.0": 130}},
+        "alloy": {"thin": {"1.6": 60, "2.0": 80, "2.6": 90}, "medium": {"2.6": 100, "3.2": 120, "4.0": 145}}
     }
+}
+
+# 雙語翻譯字典
+DICT_EN = {
+    "type": {"plate": "Plate", "pipe": "Pipe"},
+    "mat": {"carbon": "Carbon Steel", "stainless": "Stainless Steel", "alloy": "Low Alloy Steel"},
+    "thick": {"thin": "Thin (1~3mm)", "medium": "Medium (4~6mm)", "thick": "Thick (>6mm)"}
+}
+DICT_ZH = {
+    "type": {"plate": "板材", "pipe": "管材"},
+    "mat": {"carbon": "碳鋼", "stainless": "不鏽鋼", "alloy": "低合金鋼"},
+    "thick": {"thin": "薄件 (1~3mm)", "medium": "中厚件 (4~6mm)", "thick": "特殊厚件 (>6mm)"}
 }
 
 @app.route('/', methods=['GET', 'POST'])
@@ -27,6 +39,7 @@ def index():
             diameter = request.form.get('diameter')
             user_current_str = request.form.get('user_current', '').strip()
             
+            # 計算基準電流
             recommended_current = None
             if (weld_type in WELDING_DATA and 
                 material in WELDING_DATA[weld_type] and 
@@ -36,7 +49,7 @@ def index():
             else:
                 recommended_current = float(diameter) * 40
 
-            # 英文版資料
+            # 準備純英文報告資料
             pos_en = {
                 "1G (Flat)": f"Base: {recommended_current}A. Good fluidity.",
                 "2G (Horizontal)": f"Ref: {int(recommended_current * 0.9)}A. Reduce 10%.",
@@ -51,7 +64,7 @@ def index():
                 {"range": f"> {int(recommended_current + 15)}A", "effect": "Severe undercut, burn-through risk."}
             ]
 
-            # 中文版資料
+            # 準備純中文報告資料
             pos_zh = {
                 "平銲 (1G)": f"基準電流 {recommended_current}A。流動性佳，可獲最大熔深。",
                 "橫銲 (2G)": f"約 {int(recommended_current * 0.9)}A (調降10%)。需避免熔池受重力下垂。",
@@ -89,9 +102,11 @@ def index():
                     test_res_en, test_adv_en = "Optimal", "Parameters meet professional standards."
                     test_res_zh, test_adv_zh = "最佳範圍", "設定非常合理，符合實務標準。"
 
+            # 組合最終輸出 (完全分離純英文與純中文)
             result = {
-                "weld_type": weld_type, "material": material, "thickness": thickness,
-                "diameter": diameter, "recommended_current": recommended_current,
+                "summary_en": f"{DICT_EN['type'].get(weld_type, '')} | {DICT_EN['mat'].get(material, '')} | {DICT_EN['thick'].get(thickness, '')} | {diameter} mm",
+                "summary_zh": f"{DICT_ZH['type'].get(weld_type, '')} | {DICT_ZH['mat'].get(material, '')} | {DICT_ZH['thick'].get(thickness, '')} | {diameter} mm",
+                "recommended_current": recommended_current,
                 "user_current": user_current,
                 "en": {"pos": pos_en, "matrix": effects_en, "res": test_res_en, "adv": test_adv_en},
                 "zh": {"pos": pos_zh, "matrix": effects_zh, "res": test_res_zh, "adv": test_adv_zh}

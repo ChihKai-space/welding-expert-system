@@ -2,29 +2,39 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# 資料庫 Key 改為純英文代碼，方便後端乾淨處理
+# 資料庫：已移除低合金鋼，並將直徑對應更新為 1.6, 2.4, 3.2
 WELDING_DATA = {
     "plate": {
-        "carbon": {"thin": {"1.6": 60, "2.0": 80, "2.6": 90}, "medium": {"2.6": 100, "3.2": 120, "4.0": 150}},
-        "stainless": {"thin": {"1.6": 55, "2.0": 70, "2.6": 85}, "medium": {"2.6": 90, "3.2": 110, "4.0": 140}},
-        "alloy": {"thin": {"1.6": 65, "2.0": 85, "2.6": 95}, "medium": {"2.6": 105, "3.2": 125, "4.0": 155}}
+        "carbon": {
+            "thin": {"1.6": 60, "2.4": 90, "3.2": 120}, 
+            "medium": {"1.6": 80, "2.4": 110, "3.2": 140}
+        },
+        "stainless": {
+            "thin": {"1.6": 55, "2.4": 85, "3.2": 110}, 
+            "medium": {"1.6": 70, "2.4": 100, "3.2": 130}
+        }
     },
     "pipe": {
-        "carbon": {"thin": {"1.6": 55, "2.0": 75, "2.6": 85}, "medium": {"2.6": 95, "3.2": 115, "4.0": 140}},
-        "stainless": {"thin": {"1.6": 50, "2.0": 65, "2.6": 80}, "medium": {"2.6": 85, "3.2": 105, "4.0": 130}},
-        "alloy": {"thin": {"1.6": 60, "2.0": 80, "2.6": 90}, "medium": {"2.6": 100, "3.2": 120, "4.0": 145}}
+        "carbon": {
+            "thin": {"1.6": 55, "2.4": 85, "3.2": 110}, 
+            "medium": {"1.6": 75, "2.4": 105, "3.2": 135}
+        },
+        "stainless": {
+            "thin": {"1.6": 50, "2.4": 80, "3.2": 105}, 
+            "medium": {"1.6": 70, "2.4": 95, "3.2": 125}
+        }
     }
 }
 
-# 雙語翻譯字典
+# 雙語翻譯字典：已移除 alloy
 DICT_EN = {
     "type": {"plate": "Plate", "pipe": "Pipe"},
-    "mat": {"carbon": "Carbon Steel", "stainless": "Stainless Steel", "alloy": "Low Alloy Steel"},
+    "mat": {"carbon": "Carbon Steel", "stainless": "Stainless Steel"},
     "thick": {"thin": "Thin (1~3mm)", "medium": "Medium (4~6mm)", "thick": "Thick (>6mm)"}
 }
 DICT_ZH = {
     "type": {"plate": "板材", "pipe": "管材"},
-    "mat": {"carbon": "碳鋼", "stainless": "不鏽鋼", "alloy": "低合金鋼"},
+    "mat": {"carbon": "碳鋼", "stainless": "不鏽鋼"},
     "thick": {"thin": "薄件 (1~3mm)", "medium": "中厚件 (4~6mm)", "thick": "特殊厚件 (>6mm)"}
 }
 

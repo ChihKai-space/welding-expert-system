@@ -2,31 +2,34 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# 資料庫：已移除低合金鋼，並將直徑對應更新為 1.6, 2.4, 3.2
+# 資料庫：標準工業規格 1.6, 2.4, 3.2
 WELDING_DATA = {
     "plate": {
         "carbon": {
             "thin": {"1.6": 60, "2.4": 90, "3.2": 120}, 
-            "medium": {"1.6": 80, "2.4": 110, "3.2": 140}
+            "medium": {"1.6": 80, "2.4": 110, "3.2": 140},
+            "thick": {"2.4": 130, "3.2": 160} 
         },
         "stainless": {
             "thin": {"1.6": 55, "2.4": 85, "3.2": 110}, 
-            "medium": {"1.6": 70, "2.4": 100, "3.2": 130}
+            "medium": {"1.6": 70, "2.4": 100, "3.2": 130},
+            "thick": {"2.4": 120, "3.2": 150} 
         }
     },
     "pipe": {
         "carbon": {
             "thin": {"1.6": 55, "2.4": 85, "3.2": 110}, 
-            "medium": {"1.6": 75, "2.4": 105, "3.2": 135}
+            "medium": {"1.6": 75, "2.4": 105, "3.2": 135},
+            "thick": {"2.4": 125, "3.2": 150} 
         },
         "stainless": {
             "thin": {"1.6": 50, "2.4": 80, "3.2": 105}, 
-            "medium": {"1.6": 70, "2.4": 95, "3.2": 125}
+            "medium": {"1.6": 70, "2.4": 95, "3.2": 125},
+            "thick": {"2.4": 115, "3.2": 140} 
         }
     }
 }
 
-# 雙語翻譯字典：已移除 alloy
 DICT_EN = {
     "type": {"plate": "Plate", "pipe": "Pipe"},
     "mat": {"carbon": "Carbon Steel", "stainless": "Stainless Steel"},
@@ -49,7 +52,12 @@ def index():
             diameter = request.form.get('diameter')
             user_current_str = request.form.get('user_current', '').strip()
             
-            # 計算基準電流
+            # --- 後端雙重防呆檢查 ---
+            if diameter == "1.6" and thickness == "thick":
+                return render_template('index.html', result={"error": "邏輯錯誤：1.6mm 銲條不建議用於厚件銲接 (電流過大易熔損)。"})
+            if diameter == "3.2" and thickness == "thin":
+                return render_template('index.html', result={"error": "邏輯錯誤：3.2mm 銲條不建議用於薄件銲接 (電弧不穩且易燒穿)。"})
+
             recommended_current = None
             if (weld_type in WELDING_DATA and 
                 material in WELDING_DATA[weld_type] and 
@@ -59,7 +67,6 @@ def index():
             else:
                 recommended_current = float(diameter) * 40
 
-            # 準備純英文報告資料
             pos_en = {
                 "1G (Flat)": f"Base: {recommended_current}A. Good fluidity.",
                 "2G (Horizontal)": f"Ref: {int(recommended_current * 0.9)}A. Reduce 10%.",
@@ -73,8 +80,6 @@ def index():
                 {"range": f"{int(recommended_current + 5)}A ~ {int(recommended_current + 15)}A", "effect": "High fluidity, risk of undercut."},
                 {"range": f"> {int(recommended_current + 15)}A", "effect": "Severe undercut, burn-through risk."}
             ]
-
-            # 準備純中文報告資料
             pos_zh = {
                 "平銲 (1G)": f"基準電流 {recommended_current}A。流動性佳，可獲最大熔深。",
                 "橫銲 (2G)": f"約 {int(recommended_current * 0.9)}A (調降10%)。需避免熔池受重力下垂。",
@@ -88,31 +93,22 @@ def index():
                 {"range": f"{int(recommended_current + 5)}A ~ {int(recommended_current + 15)}A", "effect": "熔池流動快，銲道扁平，有咬邊風險。"},
                 {"range": f"高於 {int(recommended_current + 15)}A", "effect": "容易造成嚴重咬邊、燒穿及飛濺。"}
             ]
-
-            # 測試驗證邏輯
+            
             user_current = None
             test_res_en, test_adv_en = None, None
             test_res_zh, test_adv_zh = None, None
-            
             if user_current_str:
                 user_current = float(user_current_str)
                 if user_current < recommended_current - 15:
                     test_res_en, test_adv_en = "Critically Low", "Increase current to avoid lack of fusion."
-                    test_res_zh, test_adv_zh = "嚴重偏低", "大幅調高電流，否則極易發生包渣或假銲。"
-                elif user_current < recommended_current - 5:
-                    test_res_en, test_adv_en = "Slightly Low", "Slightly increase for better penetration."
-                    test_res_zh, test_adv_zh = "稍微偏低", "建議稍微調高電流以獲取更好熔深。"
+                    test_res_zh, test_adv_zh = "嚴重偏低", "大幅調高電流，避免假銲。"
                 elif user_current > recommended_current + 15:
-                    test_res_en, test_adv_en = "Critically High", "Risk of burn-through. Reduce immediately."
-                    test_res_zh, test_adv_zh = "嚴重偏高", "極高風險燒穿或咬邊，請立刻調低。"
-                elif user_current > recommended_current + 5:
-                    test_res_en, test_adv_en = "Slightly High", "Monitor for undercut and spatter."
-                    test_res_zh, test_adv_zh = "稍微偏高", "建議稍微調低，減少飛濺與咬邊風險。"
+                    test_res_en, test_adv_en = "Critically High", "Risk of burn-through."
+                    test_res_zh, test_adv_zh = "嚴重偏高", "極高燒穿風險，請調低。"
                 else:
-                    test_res_en, test_adv_en = "Optimal", "Parameters meet professional standards."
-                    test_res_zh, test_adv_zh = "最佳範圍", "設定非常合理，符合實務標準。"
+                    test_res_en, test_adv_en = "Optimal", "Standard parameters."
+                    test_res_zh, test_adv_zh = "最佳範圍", "符合實務標準。"
 
-            # 組合最終輸出 (完全分離純英文與純中文)
             result = {
                 "summary_en": f"{DICT_EN['type'].get(weld_type, '')} | {DICT_EN['mat'].get(material, '')} | {DICT_EN['thick'].get(thickness, '')} | {diameter} mm",
                 "summary_zh": f"{DICT_ZH['type'].get(weld_type, '')} | {DICT_ZH['mat'].get(material, '')} | {DICT_ZH['thick'].get(thickness, '')} | {diameter} mm",
@@ -123,7 +119,6 @@ def index():
             }
         except Exception as e:
             result = {"error": "System Error / 系統錯誤"}
-
     return render_template('index.html', result=result)
 
 if __name__ == '__main__':
